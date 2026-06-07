@@ -1,0 +1,23 @@
+получить папку
+curl http://localhost:5000/
+
+curl http://localhost:5000/notes/
+
+загрузить файл
+curl.exe -X PUT -H "Content-Type: application/octet-stream" --data-binary "Hello world" http://localhost:5000/hello.txt
+
+curl.exe -X PUT -H "Content-Type: application/octet-stream" --data-binary "Bye world" http://localhost:5000/notes/bye.txt
+
+получить файл
+curl -O http://localhost:5000/hello.txt
+
+curl -X GET http://localhost:5000/hello.txt
+
+получить информацию о файле
+curl -I -X HEAD http://localhost:5000/hello.txt
+
+копировать файл
+curl -X PUT -H "X-Copy-From: test.txt" http://localhost:5000/copy.txt
+
+удалить файл
+curl -X DELETE http://localhost:5000/hello.txt

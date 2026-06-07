@@ -8,6 +8,45 @@ PROXY_HOST = '127.0.0.2'
 PROXY_PORT = 8080
 BLACKLIST_FILE = 'blacklist.txt'
 
+# Таблица расшифровки HTTP-кодов, передаваемых браузеру в ответе сервера
+STATUS_CODES = {
+    100: 'Продолжай (Continue)',
+    101: 'Переключение протоколов (Switching Protocols)',
+    200: 'Успешно (OK)',
+    201: 'Создано (Created)',
+    204: 'Нет содержимого (No Content)',
+    301: 'Перемещено навсегда (Moved Permanently)',
+    302: 'Временное перенаправление (Found)',
+    304: 'Не изменено (Not Modified)',
+    400: 'Неверный запрос (Bad Request)',
+    401: 'Требуется авторизация (Unauthorized)',
+    403: 'Доступ запрещён (Forbidden)',
+    404: 'Не найдено (Not Found)',
+    405: 'Метод не разрешён (Method Not Allowed)',
+    408: 'Время ожидания истекло (Request Timeout)',
+    429: 'Слишком много запросов (Too Many Requests)',
+    500: 'Внутренняя ошибка сервера (Internal Server Error)',
+    502: 'Плохой шлюз (Bad Gateway)',
+    503: 'Сервис недоступен (Service Unavailable)',
+    504: 'Шлюз не отвечает (Gateway Timeout)',
+}
+
+def decode_status_code(status_line):
+    """Возвращает числовой код и расшифровку из строки вида «HTTP/1.1 404 Not Found»."""
+    parts = status_line.split()
+    if len(parts) < 2 or not parts[1].isdigit():
+        return None, status_line
+    code = int(parts[1])
+    return code, STATUS_CODES.get(code, ' '.join(parts[2:]) if len(parts) > 2 else 'Неизвестный код')
+
+def print_status_codes_table():
+    """Выводит таблицу расшифровки кодов при запуске прокси."""
+    print('[*] Таблица расшифровки HTTP-кодов:')
+    print(f"{'Код':<6} {'Расшифровка'}")
+    print('-' * 50)
+    for code in sorted(STATUS_CODES):
+        print(f"{code:<6} {STATUS_CODES[code]}")
+
 def load_blacklist():
     """Загружает список заблокированных доменов из файла."""
     if not os.path.exists(BLACKLIST_FILE):
@@ -48,7 +87,7 @@ def handle_client(client_socket, client_address, blacklist):
 
         # Проверка черного списка
         if host and host.lower() in blacklist:
-            print(f"[BLOCKED] {url}")
+            print(f"[BLOCKED] {url} 403 — {STATUS_CODES[403]}")
             send_blocked_response(client_socket, url)
             return
 
@@ -67,9 +106,13 @@ def handle_client(client_socket, client_address, blacklist):
             if response_data:
                 response_first_line = response_data.split(b'\r\n')[0].decode('utf-8', errors='ignore')
                 status_code = " ".join(response_first_line.split()[1:])
+                code, description = decode_status_code(response_first_line)
                 
-                # Журналируем запрос в консоли - берем только урл и статус
-                print(f"{url} {status_code}")
+                # Журналируем запрос в консоли: URL, код и расшифровка
+                if code is not None:
+                    print(f"{url} {status_code} — {description}")
+                else:
+                    print(f"{url} {status_code}")
                 
                 client_socket.sendall(response_data) #чтобы клиент понял что сервер ответил
 
@@ -118,6 +161,7 @@ def start_proxy():
     server_socket.listen(100)
     
     print(f"[*] Прокси-сервер запущен на {PROXY_HOST}:{PROXY_PORT}")
+    print_status_codes_table()
     if blacklist:
         print(f"[*] Загружен черный список: {', '.join(blacklist)}")
         

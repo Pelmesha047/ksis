@@ -61,7 +61,7 @@ def get_node_name(ip_address, resolve_names):
     except (socket.herror, socket.gaierror):
         return ip_address
 
-def run_traceroute(target_host, resolve_names=False, max_hops=30, timeout=2.0):
+def run_traceroute(target_host, resolve_names=False, max_hops=30, timeout=4.0):
     """Основная логика трассировки маршрута."""
     try:
         dest_addr = socket.gethostbyname(target_host) #получаем айпи адрес целевого узла
@@ -142,6 +142,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Python Traceroute Clone")
     parser.add_argument("target", help="IP или доменное имя")
     parser.add_argument("-n", "--resolve", action="store_true", help="Включить DNS разрешение имен")
-    
+    parser.add_argument(
+        "-w",
+        "--wait",
+        type=int,
+        default=4000,
+        metavar="MS",
+        help="Таймаут ожидания одной пробы в мс, как у tracert -w (по умолчанию 4000)",
+    )
+
     args = parser.parse_args()
-    run_traceroute(args.target, resolve_names=args.resolve)
+    run_traceroute(args.target, resolve_names=args.resolve, timeout=args.wait / 1000.0)
